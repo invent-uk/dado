@@ -15,7 +15,7 @@ The script executes as a daemon, identifying dashcam recordings of interest usin
 
 The code was written against an IRO A66 camera designed for a Tesla Model S AP1. There is no programming interface documentation available for this camera but inspiration was taken from the following page:
 
-https://hackaday.io/project/167990-reverse-engineer-ddpai-dash-cam-firmware/details
+https://www.eionix.co.in/2019/10/10/reverse-engineer-ddpai-firmware.html
 
 The code may support a whole range of DDPAI cameras without any modification.
 
