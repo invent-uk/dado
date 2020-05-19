@@ -21,7 +21,7 @@ list_extension: ".list"
 download_events: true
 download_recordings: true
 process_motion_detection: true
-force_download_all: true
+force_download_all: false
 process_manual_requests: true
 merge_videos: true
 remove_merged_originals: false
