@@ -3,11 +3,13 @@
 
 ## Summary
 
-Dado is a python script that downloads dash cam recordings from a wifi connected camera.
+Dado is a python script that automatically downloads dash cam recordings from a wifi connected camera.
 
 ## Aim
 
 There are a number of dashcams on the market that support Wifi connectivity. Unfortunately many of these dashcams do not offer a method to download these recordings onto a computer, instead relying on an app to download video onto the user's phone when requested. This script is intended to fill that gap for a particular type of cameras, code submissions to support other cameras are welcome.
+
+The script executes as a daemon, identifying dashcam recordings of interest using camera events and motion detection. Once the recordings are identified they are downloaded and then merged into longer videos using ffmpeg. The script will then sleep for 10 minutes before continuing where it left off. Motion detection is use to limit the download of recordings to those that take place when the vehicle is in use. This allows the camera to still be configured to record 24x7 without creating a constant saturation of the wifi link.
 
 ## Initial camera support
 
