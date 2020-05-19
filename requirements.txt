@@ -1,6 +1,6 @@
 tzlocal
 requests
 pyYAML
-python-ffmpeg
+ffmpeg-python
 numpy
 scikit-image
