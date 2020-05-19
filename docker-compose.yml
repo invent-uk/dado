@@ -1,0 +1,7 @@
+version: "3.8"
+services:
+  dado:
+    build: .
+#    volumes:
+#      - "/cctv/dashcam:cctv/dashcam"
+ 

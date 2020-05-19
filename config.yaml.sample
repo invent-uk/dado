@@ -1,0 +1,50 @@
+log_level: info
+ffmpeg_log_level: error
+sleep_interval: 600
+output_root: cctv/dashcam
+directory_timestamp: "%Y/%m/%d"
+recording_timestamp: "%Y-%m-%d-%H%M"
+recording_time: "%H%M"
+
+thumbnail_filename: "thumbnails/{directory_timestamp}/{start_timestamp}-{end_time}_{thumbnail}"
+original_filename:  "originals/{directory_timestamp}/{start_timestamp}-{end_time}_{name}"
+recording_filename: "recordings/{start[directory_timestamp]}/{event}_{start[start_timestamp]}-{end[end_time]}"
+event_filename:     "events/{directory_timestamp}/{start_timestamp}_{filename}"
+
+recording_extension: ".mp4"
+manual_request_extension: ".request"
+manual_request_name: "manual_"
+manual_request_regex: "(\\d+-\\d+-\\d+)-(\\d+)-(\\d+)"
+
+list_extension: ".list"
+
+download_events: true
+download_recordings: true
+process_motion_detection: true
+force_download_all: true
+process_manual_requests: true
+merge_videos: true
+remove_merged_originals: false
+
+camera:
+  model: IRO A66
+  module: cameras.ddpai
+  class: DDPAI
+  address: 193.168.0.1
+  port: 80
+  date_format: "%Y%m%d%H%M%S"
+  api_path: "vcam/cmd.cgi?cmd="
+  time_set: True
+  time_set_max_drift: 3
+  thumbnail_extension: "_T.jpg"
+  sort_order: starttime
+  internal_date_format: "M\/d\/yyyy h:mm:ss a"
+  internal_language: en_US
+  http_retries: 3
+
+
+motion_detection:
+  sensitivity: 1500
+  start_count: 3
+  stop_count: 3
+  maximum_video_length: 120

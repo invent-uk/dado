@@ -1,0 +1,6 @@
+tzlocal
+requests
+pyYAML
+python-ffmpeg
+numpy
+scikit-image
