@@ -58,6 +58,7 @@ class MotionDetection:
             self.check_count_in_threshold(item)
         else:
             self.status = STATE_IDLE
+            self.count = 0
 
     def recording(self, item):
         if not self.image_triggered(item):
@@ -70,6 +71,7 @@ class MotionDetection:
             self.check_count_out_threshold(item)
         else:
             self.status = STATE_RECORDING
+            self.count = 0
 
     def request_recording(self, item):
         logger.info("Requesting recording {} to {}".format(self.trigger_start_image['startdatetime'], item['enddatetime']))
