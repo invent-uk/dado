@@ -32,6 +32,7 @@ class DDPAI:
         # One session for downloading images and videos, retry on failure
         self.session_reliable = requests.Session()
         self.session_reliable.mount(self.get_http_endpoint(), HTTPAdapter(max_retries=self.config['http_retries']))
+        self.timeout = self.config.get('http_timeout', 60)
 
     def get_http_endpoint(self):
         return "http://{}:{}".format(self.config['address'], self.config['port'])
@@ -108,7 +109,7 @@ class DDPAI:
             headers['sessionid'] = self.sessionid
         dict(cookies_are='working')
         try:
-            response = self.session.request(method, url, data=data, headers=headers)
+            response = self.session.request(method, url, data=data, headers=headers, timeout=self.timeout)
             timestamp = datetime.strptime(response.headers['Date'], HTTP_DATE_FORMAT)
         except requests.ConnectionError as e:
             logger.info("Camera not available")

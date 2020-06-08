@@ -9,7 +9,7 @@ recording_time: "%H%M"
 thumbnail_filename: "thumbnails/{directory_timestamp}/dashcam_{start_timestamp}-{end_time}_{thumbnail}"
 original_filename:  "originals/{directory_timestamp}/dashcam_{start_timestamp}-{end_time}_{name}"
 recording_filename: "recordings/{start[directory_timestamp]}/dashcam_{event}_{start[start_timestamp]}-{end[end_time]}"
-event_filename:     "events/{directory_timestamp}/dashcam_{start_timestamp}_{filename}"
+event_filename:     "events/{directory_timestamp}/dashcam_event_{start_timestamp}_{filename}"
 
 recording_extension: ".mp4"
 manual_request_extension: ".request"
@@ -41,10 +41,11 @@ camera:
   internal_date_format: "M\/d\/yyyy h:mm:ss a"
   internal_language: en_US
   http_retries: 3
+  http_timeout: 60
 
 
 motion_detection:
   sensitivity: 1500
   start_count: 3
   stop_count: 3
-  maximum_video_length: 120
+  maximum_video_length: 1800
