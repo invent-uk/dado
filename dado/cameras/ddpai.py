@@ -111,7 +111,7 @@ class DDPAI:
         try:
             response = self.session.request(method, url, data=data, headers=headers, timeout=self.timeout)
             timestamp = datetime.strptime(response.headers['Date'], HTTP_DATE_FORMAT)
-        except requests.ConnectionError as e:
+        except (requests.ConnectionError, requests.exceptions.ReadTimeout) as e:
             logger.info("Camera not available")
             logger.debug("Error reported: {}".format(e))
         end = datetime.now()
