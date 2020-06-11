@@ -12,6 +12,7 @@ import time
 from datetime import datetime, timedelta
 from motiondetection import MotionDetection
 from util import plural
+from pprint import pprint as pprint
 
 
 class Dado:
@@ -55,12 +56,14 @@ class Dado:
                         self.download_events()
 
                     if self.config.get('download_recordings'):
-                        downloaded_requests = self.download_recordings()
+                        (filtered_recordings, requested_sequences) = self.identify_recordings()
+                        self.download_recordings(requested_sequences)
 
-                        if self.config.get('merge_videos'):
-                            self.merge_recordings(downloaded_requests)
-
-                        self.remove_successful_requests(downloaded_requests)
+                        if self.config.get('force_download_all'):
+                            logger.info("Processing forced download of all recordings..")
+                            all_recordings = [{"recordings": filtered_recordings}]
+                            self.add_paths(all_recordings[0]['recordings'], "original_filename")
+                            self.download_videos(all_recordings)
 
             # except Exception as e:
             #     logger.error("Error encountered in the belt and braces exception handler: {}".format(e))
@@ -80,8 +83,7 @@ class Dado:
             self.add_paths(event_list, "event_filename")
             self.camera.download_files(event_list, "filename", "event_filename")
 
-    def download_recordings(self):
-        downloaded_requests = []
+    def identify_recordings(self):
         all_recordings = self.camera.list_recordings()
 
         if all_recordings and len(all_recordings) > 0:
@@ -93,13 +95,13 @@ class Dado:
 
             if len(filtered_recordings) > 0:
                 logger.info("The oldest recording on the device is: {}".format(filtered_recordings[0]['start_timestamp']))
-            requested_recordings = []
+            requested_sequences = []
 
             if self.config.get('process_manual_requests'):
                 logger.info("Processing manual requests..")
 
                 manual_requests = self.find_manual_requests()
-                requested_recordings.extend(manual_requests)
+                requested_sequences.extend(manual_requests)
 
             if self.config.get('process_motion_detection'):
                 logger.info("Processing motion detection..")
@@ -107,24 +109,24 @@ class Dado:
                 self.add_paths(filtered_recordings, "thumbnail_filename")
                 download_list = self.camera.download_files(filtered_recordings, "thumbnail", "thumbnail_filename")
                 self.motion.calculate_differences(download_list, "thumbnail_filename")
-                requested_recordings.extend(self.motion.identify_requests(download_list))
+                requested_sequences.extend(self.motion.identify_requests(download_list))
 
-            self.match_recordings(requested_recordings, all_recordings)
-            self.remove_empty_requests(requested_recordings)
+            self.match_recordings(requested_sequences, all_recordings)
+            self.remove_empty_requests(requested_sequences)
 
-            for recording_list in requested_recordings:
-                self.add_paths(recording_list['recordings'], "original_filename")
-            downloaded_requests = self.download_videos(requested_recordings)
+        return (filtered_recordings, requested_sequences)
 
-            if self.config.get('force_download_all'):
-                logger.info("Processing forced download of all recordings..")
+    def download_recordings(self, requested_sequences):
+        downloaded_requests = []
+        for requested_sequence in requested_sequences:
+            self.add_paths(requested_sequence['recordings'], "original_filename")
 
-                all_recordings = [{"recordings": filtered_recordings}]
+            downloaded_requests.append(self.download_videos(requested_sequence))
 
-                self.add_paths(all_recordings[0]['recordings'], "original_filename")
-                self.download_videos(all_recordings)
+            if self.config.get('merge_videos'):
+                self.merge_recordings(requested_sequence)
 
-        return downloaded_requests
+            self.remove_successful_request(requested_sequence)
 
     def remove_empty_requests(self, requested_recordings):
         requested_recordings[:] = [tup for tup in requested_recordings if not len(tup['recordings']) == 0]
@@ -142,7 +144,10 @@ class Dado:
 
     def add_paths(self, list, key):
         for item in list:
-            item[key] = os.path.join(self.config['output_root'], self.config[key].format(**item))
+            self.add_path(item, key)
+
+    def add_path(self, item, key):
+        item[key] = os.path.join(self.config['output_root'], self.config[key].format(**item))
 
     def already_processed(self, item):
         return item['startdatetime'] <= self.state['last_image_processed']['enddatetime']
@@ -175,50 +180,47 @@ class Dado:
                 logger.info("No recordings found matching manual request")
             requested_time['recordings'] = matching_recordings
 
-    def download_videos(self, requested_recordings):
-        for request in requested_recordings:
-            request['downloaded'] = self.camera.download_files(request['recordings'], "name", "original_filename")
-            logger.debug("Downloaded {} recordings".format(len(request['downloaded'])))
+    def download_videos(self, request):
+        request['downloaded'] = self.camera.download_files(request['recordings'], "name", "original_filename")
+        logger.debug("Downloaded {} recordings".format(len(request['downloaded'])))
 
-        return requested_recordings
+        return request
 
-    def merge_recordings(self, list):
-        self.add_paths(list, "recording_filename")
+    def merge_recordings(self, request):
+        self.add_path(request, "recording_filename")
 
-        for item in list:
-            recordings = item['recordings']
+        recordings = request['recordings']
 
-            list_file = item['recording_filename'] + self.config['list_extension']
-            final_file = item['recording_filename'] + self.config['recording_extension']
-            logger.info("Merging recordings for {}".format(final_file))
+        list_file = request['recording_filename'] + self.config['list_extension']
+        final_file = request['recording_filename'] + self.config['recording_extension']
+        logger.info("Merging recordings for {}".format(final_file))
 
-            path = os.path.dirname(list_file)
-            if not os.path.exists(path):
-                logger.debug("Making dir {}".format(path))
-                os.makedirs(path)
+        path = os.path.dirname(list_file)
+        if not os.path.exists(path):
+            logger.debug("Making dir {}".format(path))
+            os.makedirs(path)
 
-            with open(list_file, 'w') as f:
-                for recording in recordings:
-                    fullpath = os.path.abspath(recording['original_filename'])
-                    f.write("file '{}'\n".format(fullpath))
+        with open(list_file, 'w') as f:
+            for recording in recordings:
+                fullpath = os.path.abspath(recording['original_filename'])
+                f.write("file '{}'\n".format(fullpath))
 
-            if os.path.isfile(final_file):
-                os.remove(final_file)
-            try:
-                ffmpeg.input(list_file, format='concat', safe=0).output(final_file, c='copy') \
-                    .global_args('-loglevel', self.config.get('ffmpeg_log_level', 'info')) \
-                    .global_args('-y').run()
-                os.remove(list_file)
-                item['merge_status'] = True
-            except Exception as e:
-                logger.error("Error merging recordings with ffmpeg: {}".format(e))
-                item['merge_status'] = False
+        if os.path.isfile(final_file):
+            os.remove(final_file)
+        try:
+            ffmpeg.input(list_file, format='concat', safe=0).output(final_file, c='copy') \
+                .global_args('-loglevel', self.config.get('ffmpeg_log_level', 'info')) \
+                .global_args('-y').run()
+            os.remove(list_file)
+            request['merge_status'] = True
+        except Exception as e:
+            logger.error("Error merging recordings with ffmpeg: {}".format(e))
+            request['merge_status'] = False
 
-    def remove_successful_requests(self, list):
-        for item in list:
-            if item['event'] == 'manual':
-                if os.path.isfile(item['request_file']):
-                    os.remove(item['request_file'])
+    def remove_successful_request(self, item):
+        if item['event'] == 'manual':
+            if os.path.isfile(item['request_file']):
+                os.remove(item['request_file'])
 
     def iterate_path(self, directory, extension):
         logger.debug("Iterate path: {} to find files with extension {}".format(directory, extension))

@@ -116,9 +116,11 @@ class MotionDetection:
         self.request_list = []
 
         for item in list:
+            if not last:
+                last = item
             func = self.state_switcher.get(self.status, "Invalid state, will crash")
             logger.debug("{} Event status: {}. Current image change from last image: {}".format(item['start_timestamp'], self.status, item.get('image_diff', 'None')))
-            func(item)
+            func(last)
 
             # Update the last processed state for the next run. Only do this when idle
             if self.status == STATE_IDLE and last and not self.image_triggered(item):
